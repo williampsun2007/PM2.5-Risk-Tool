@@ -1,8 +1,9 @@
 import xarray as xr
 import numpy as np
 import plotly.graph_objects as go
-from dash import Dash, html, dcc, Input, Output, callback
+from dash import Dash, html, dcc, Input, Output, State, callback
 import pandas as pd
+import dash_bootstrap_components as dbc
 
 url = "https://raw.githubusercontent.com/kjhealy/fips-codes/master/state_and_county_fips_master.csv"
 counties_df = pd.read_csv(url)
@@ -25,80 +26,63 @@ cigarette_conversion_total = (totalPM25 / 22) * 365
 
 cigarette_conversion_dailymax = firePM25_dailymax / 22
 
-state_names = {
-    1:'Alabama', 2:'Alaska', 4:'Arizona', 5:'Arkansas', 6:'California',
-    8:'Colorado', 9:'Connecticut', 10:'Delaware', 11:'District of Columbia',
-    12:'Florida', 13:'Georgia', 15:'Hawaii', 16:'Idaho', 17:'Illinois',
-    18:'Indiana', 19:'Iowa', 20:'Kansas', 21:'Kentucky', 22:'Louisiana',
-    23:'Maine', 24:'Maryland', 25:'Massachusetts', 26:'Michigan', 27:'Minnesota',
-    28:'Mississippi', 29:'Missouri', 30:'Montana', 31:'Nebraska', 32:'Nevada',
-    33:'New Hampshire', 34:'New Jersey', 35:'New Mexico', 36:'New York',
-    37:'North Carolina', 38:'North Dakota', 39:'Ohio', 40:'Oklahoma',
-    41:'Oregon', 42:'Pennsylvania', 44:'Rhode Island', 45:'South Carolina',
-    46:'South Dakota', 47:'Tennessee', 48:'Texas', 49:'Utah', 50:'Vermont',
-    51:'Virginia', 53:'Washington', 54:'West Virginia', 55:'Wisconsin', 56:'Wyoming'
-}
-
-app = Dash(__name__)
-
-state_data_fire = {}
-state_data_nonfire = {}
-for state_id in state_names.keys():
-    county_indices = [i for i, f in enumerate(fips) if f // 1000 == state_id and f % 1000 != 0]
-    if county_indices:
-        state_data_fire[state_id] = np.nanmean(cigarette_conversion_fire[:, county_indices], axis = 1)
-        state_data_nonfire[state_id] = np.nanmean(cigarette_conversion_nonfire[:, county_indices], axis = 1)
-
-for state_id in state_names.keys():
-    idx = fips.tolist().index(state_id * 1000)
-    cigarette_conversion_fire[:, idx] = state_data_fire[state_id]
-    cigarette_conversion_nonfire[:, idx] = state_data_nonfire[state_id]
-    cigarette_conversion_total[:, idx] = state_data_fire[state_id] + state_data_nonfire[state_id]
+app = Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP])
     
-state_data_max = {}
-for state_id in state_names.keys():
-     county_indices = [i for i, f in enumerate(fips) if f // 1000 == state_id and f % 1000 != 0]
-     if county_indices:
-         state_data_max[state_id] = np.nanmax(cigarette_conversion_dailymax[:, county_indices], axis = 1)
-         
-for state_id in state_names.keys():
-    idx = fips.tolist().index(state_id * 1000)
-    cigarette_conversion_dailymax[:, idx] = state_data_max[state_id]
-    
-app.layout = html.Div([
-    html.H1("PM2.5 Exposure Risk Tool"),
-    html.P("Note: Missing visual lines/bars may indicate years where data is unavailable for the selected county/state.", 
-       style = {'font-size': '12px', 'color': 'gray'}),
+app.layout = dbc.Container([
+    html.Div([
+        html.H1("PM2.5 Exposure Risk Tool", className = "text-white fw-bold mt-4"),
+        html.P("Explore how wildfire smoke and air pollution in your county compares to smoking cigarettes, from 2006 to 2023.", 
+                className = "text-white mb-4")], 
+                style = {'backgroundColor': '#2c3e50', 'padding': '30px', 'borderRadius': '8px', 'marginBottom': '20px'}),
+    html.P("Note: Missing visual lines/bars may indicate years where data is unavailable for the selected county.", 
+            style = {'font-size': '12px', 'color': 'gray'}),
+    html.Label("Select County", className = "fw-bold mt-3"),
     dcc.Dropdown(id = 'county-dropdown', options = [
-        {'label': f"{row['name']}, {row['state']}", 'value': int(row['fips'])}
-        for _, row in counties_df.iterrows() if int(row['fips']) in fips.tolist()
-    ] + [{'label': name, 'value': int(id * 1000)} for id, name in state_names.items()]),
+            {'label': f"{row['name']}, {row['state']}", 'value': int(row['fips'])}
+            for _, row in counties_df.iterrows() if int(row['fips']) in fips.tolist()]),
+    html.Label("Set Your Cigarette Tolerance Threshold (cigarettes/year)", className = "fw-bold mt-3"),
     dcc.Slider(id = 'threshold-slider', min = 0, max = 750, step = 1, value = 150, 
-               marks = {0: '0', 100: '100', 200: '200', 300: '300', 400: '400', 500: '500'}),
-    dcc.Graph(id = 'main-chart'),
-    dcc.Graph(id = 'bar-daily'),
-    html.P(id = 'summary-text'),
-    html.Hr(),
-    html.P([
-        "Air pollution exposure is converted to cigarette equivalents using the ",
-        html.A("Berkeley Earth methodology", href = "https://berkeleyearth.org/air-pollution-and-cigarette-equivalence/", target = "_blank"),
-        ", which estimates that breathing air with 22 µg/m³ of PM2.5 for one day is roughly equivalent to smoking one cigarette."
-    ]),
-    html.P("Annual exposure: (PM2.5 µg/m³ ÷ 22) × 365 = cigarettes/year"),
-    html.P("Daily exposure: PM2.5 µg/m³ ÷ 22 = cigarettes/day")
-])
+            marks = {0: '0', 100: '100', 200: '200', 300: '300', 400: '400', 500: '500'}),
+    dbc.Button("Show My Risk Profile", id = "submit-button", n_clicks = 0, className = "mt-3", disabled = True),
+    html.Div(id = "result-section", style = {"display": "none"}, children = [
+        dbc.Row([
+            dbc.Col([dcc.Graph(id = 'main-chart', style = {'height': '400px'})]),
+            dbc.Col([dcc.Graph(id = 'bar-daily', style = {'height': '400px'})])
+        ]),
+        dbc.Card(dbc.CardBody(html.P(id = 'summary-text')), className = "mt-3"),
+        html.Hr(),
+        dbc.Card(
+            dbc.CardBody([
+                html.H5("About This Tool", className = "card-title"),
+                html.P([
+                    "Air pollution exposure is converted to cigarette equivalents using the ",
+                    html.A("Berkeley Earth methodology", href = "https://berkeleyearth.org/air-pollution-and-cigarette-equivalence/", target="_blank"),
+                    ", which estimates that breathing air with 22 µg/m³ of PM2.5 for one day is roughly equivalent to smoking one cigarette."
+                ]),
+                html.P("Annual exposure: (PM2.5 µg/m³ ÷ 22) × 365 = cigarettes/year"),
+                html.P("Daily exposure: PM2.5 µg/m³ ÷ 22 = cigarettes/day")
+            ]), className = "mt-3", style = {'backgroundColor': '#f8f9fa'}
+        )
+    ])
+], fluid = False)
 
 
 @callback(
     Output('main-chart', 'figure'),
     Output('bar-daily', 'figure'),
+    Output('result-section', 'style'),
+    Output('submit-button', 'style'), 
+    Output('submit-button', 'disabled'),
     Output('summary-text', 'children'),
     Input('county-dropdown', 'value'),
-    Input('threshold-slider', 'value')
+    Input('threshold-slider', 'value'),
+    Input('submit-button', 'n_clicks')
 )
-def update_chart(selected_fips, threshold):
+def update_chart(selected_fips, threshold, n_clicks):
     if selected_fips is None:
-        return go.Figure(), go.Figure(), ""
+        return go.Figure(), go.Figure(), {"display": "none"}, {"style": "block"}, True, ""
+    elif n_clicks == 0:
+        return go.Figure(), go.Figure(), {"display": "none"}, {"display": "block"}, False, ""
     
     fig = go.Figure()
     idx = fips.tolist().index(selected_fips)
@@ -147,11 +131,13 @@ def update_chart(selected_fips, threshold):
     cumulative_above_threshold = sum(cigarette_conversion_total[year - 2006, idx] - threshold for year in range(2006, 2024) 
                                      if cigarette_conversion_total[year - 2006, idx] > threshold)
     
-    return fig, fig_bar, [html.P(f"In {num_years_above_threshold} out of 18 years from 2006 - 2023, the county/state exceeded your threshold of {threshold} cigarettes/year"),
-                          html.P(f"Your worst year was {max_year} at {max_cigarette} cigarettes"),
-                          html.P(summary_2023),
-                          html.P(f"Wildfire smoke accounted for {pct_wildfire}% of your total exposure in 2023"),
-                          html.P(f"Over 2006-2023, you accumulated {round(float(cumulative_above_threshold), 2)} excess cigarettes above your threshold of {threshold} cigarettes/year.")]
+    return fig, fig_bar, {"display": "block"}, {"display": "none"}, False, [html.H5("Your Exposure Summary", className = "card-title mb-3"),
+        html.P(f"In {num_years_above_threshold} out of 18 years from 2006 - 2023, the county exceeded your threshold of {threshold} cigarettes/year"),
+        html.P(f"Your worst year was {max_year} at {max_cigarette} cigarettes"),
+        html.P(summary_2023),
+        html.P(f"Wildfire smoke accounted for {pct_wildfire}% of your total exposure in 2023"),
+        html.P(f"Over 2006-2023, you accumulated {round(float(cumulative_above_threshold), 2)} excess cigarettes above your threshold of {threshold} cigarettes/year.")],
+
 
 if __name__ == '__main__':
-    app.run(debug = False)
+    app.run(debug = True)
