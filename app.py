@@ -26,7 +26,17 @@ cigarette_conversion_total = (totalPM25 / 22) * 365
 
 cigarette_conversion_dailymax = firePM25_dailymax / 22
 
+def _no_data_figure(title):
+    fig = go.Figure()
+    fig.update_layout(title = title, xaxis = {'visible': False}, yaxis = {'visible': False},
+                       paper_bgcolor = '#f8f5f0', plot_bgcolor = '#f8f5f0')
+    fig.add_annotation(text = "No air quality data available for this county",
+                        showarrow = False, font = dict(size = 16, color = "gray"),
+                        xref = "paper", yref = "paper", x = 0.5, y = 0.5)
+    return fig
+
 app = Dash(__name__, external_stylesheets = [dbc.themes.BOOTSTRAP])
+server = app.server
     
 app.layout = dbc.Container([
     html.Div([
@@ -86,74 +96,92 @@ app.layout = dbc.Container([
 )
 def update_chart(selected_fips, threshold, n_clicks):
     if selected_fips is None:
-        return go.Figure(), go.Figure(), {"display": "none"}, {"style": "block"}, True, {"backgroundColor": "#f8f9fa"}, ""
+        return go.Figure(), go.Figure(), {"display": "none"}, {"display": "block"}, True, {"backgroundColor": "#f8f9fa"}, ""
     elif n_clicks == 0:
         return go.Figure(), go.Figure(), {"display": "none"}, {"display": "block"}, False, {"backgroundColor": "#f8f9fa"}, ""
     
-    fig = go.Figure()
     idx = fips.tolist().index(selected_fips)
-    
-    fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_nonfire[:, idx], line = dict(color = "red", width = 2),
-                         stackgroup = 'one', name = "Non-Fire", visible = True))
-    fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_fire[:, idx], line = dict(color = "blue", width = 2),
-                         stackgroup = 'one', name = "Fire", visible = True))
-    
-    fig.add_hline(y = threshold, line_dash = "dash", line_color = "black")
+    annual_missing = bool(np.all(np.isnan(cigarette_conversion_total[:, idx])))
+    dailymax_missing = bool(np.all(np.isnan(cigarette_conversion_dailymax[:, idx])))
 
-    fig.update_layout(
-        title = 'Annual Air Pollution Exposure (Cigarette Equivalent)',
-        xaxis_title = 'Year',
-        yaxis_title = 'Cigarettes per Year',
-        xaxis = dict(range = [2006, 2023]),
-        paper_bgcolor = '#f8f5f0', 
-        plot_bgcolor = '#f8f5f0' 
-    )
-    
-    fig_bar = go.Figure()
-    
-    fig_bar.add_trace(go.Bar(x = years, y = cigarette_conversion_dailymax[:, idx], 
-                             name = "Daily Max Fire", marker_color = "#d4a017"))
-    
-    fig_bar.add_hline(y = threshold / 365, line_dash = "dash", line_color = "black")
-    
-    fig_bar.update_layout(
-        title = "Worst Single-Day Wildfire Smoke Exposure Per Year",
-        xaxis_title = "Year",
-        yaxis_title = "Cigarettes in a Single Day",
-        xaxis = dict(range = [2005.5, 2024]),
-        paper_bgcolor = '#f8f5f0', 
-        plot_bgcolor = '#f8f5f0' 
-    )
-    
-    num_years_above_threshold = np.sum(cigarette_conversion_total[:, idx] >= threshold)
-    if num_years_above_threshold <= 6:
-        card_color = {'backgroundColor': '#d4edda'}
-    elif num_years_above_threshold <= 12:
-        card_color = {'backgroundColor': '#fff3cd'}
+    if annual_missing:
+        fig = _no_data_figure('Annual Air Pollution Exposure (Cigarette Equivalent)')
     else:
-        card_color = {'backgroundColor': '#f8d7da'}
-    
-    worst_idx = np.argmax(cigarette_conversion_total[:, idx])
-    max_year = int(years[worst_idx])
-    max_cigarette = round(float(cigarette_conversion_total[worst_idx, idx]), 2)
-            
-    if cigarette_conversion_total[17, idx] >= threshold:
-        summary_2023 = f"In 2023 your exposure was {round(float(cigarette_conversion_total[17, idx]), 2)} cigarettes - above your limit."
+        fig = go.Figure()
+
+        fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_nonfire[:, idx], line = dict(color = "red", width = 2),
+                             stackgroup = 'one', name = "Non-Fire", visible = True))
+        fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_fire[:, idx], line = dict(color = "blue", width = 2),
+                             stackgroup = 'one', name = "Fire", visible = True))
+
+        fig.add_hline(y = threshold, line_dash = "dash", line_color = "black")
+
+        fig.update_layout(
+            title = 'Annual Air Pollution Exposure (Cigarette Equivalent)',
+            xaxis_title = 'Year',
+            yaxis_title = 'Cigarettes per Year',
+            xaxis = dict(range = [2006, 2023]),
+            paper_bgcolor = '#f8f5f0',
+            plot_bgcolor = '#f8f5f0'
+        )
+
+    if dailymax_missing:
+        fig_bar = _no_data_figure("Worst Single-Day Wildfire Smoke Exposure Per Year")
     else:
-        summary_2023 = f"In 2023 your exposure was {round(float(cigarette_conversion_total[17, idx]), 2)} cigarettes - below your limit."
-    
-    pct_wildfire = round((float(cigarette_conversion_fire[17, idx] / cigarette_conversion_total[17, idx]) * 100), 2)
-    
-    cumulative_above_threshold = sum(cigarette_conversion_total[year - 2006, idx] - threshold for year in range(2006, 2024) 
-                                     if cigarette_conversion_total[year - 2006, idx] > threshold)
-    
-    return fig, fig_bar, {"display": "block"}, {"display": "none"}, False, card_color, [html.H5(f"{'🟢' if num_years_above_threshold <= 6 else '🟡' if num_years_above_threshold <= 12 else '🔴'} Your Exposure Summary"),
-        html.P(f"In {num_years_above_threshold} out of 18 years from 2006 - 2023, the county exceeded your threshold of {threshold} cigarettes/year.", style = {'fontWeight': 'bold'}),
-        html.P(f"Your worst year was {max_year} - equivalent to smoking {max_cigarette} cigarettes that year just from breathing."),
-        html.P(summary_2023),
-        html.P(f"Wildfire smoke accounted for {pct_wildfire}% of your total exposure in 2023."),
-        html.P(f"Over 18 years during 2006-2023, you breathed in {round(float(cumulative_above_threshold), 2)} extra cigarettes worth of pollution above your limit of {threshold} cigarettes/year.")],
+        fig_bar = go.Figure()
+
+        fig_bar.add_trace(go.Bar(x = years, y = cigarette_conversion_dailymax[:, idx],
+                                 name = "Daily Max Fire", marker_color = "#d4a017"))
+
+        fig_bar.add_hline(y = threshold / 365, line_dash = "dash", line_color = "black")
+
+        fig_bar.update_layout(
+            title = "Worst Single-Day Wildfire Smoke Exposure Per Year",
+            xaxis_title = "Year",
+            yaxis_title = "Cigarettes in a Single Day",
+            xaxis = dict(range = [2005.5, 2024]),
+            paper_bgcolor = '#f8f5f0',
+            plot_bgcolor = '#f8f5f0'
+        )
+
+    if annual_missing:
+        card_color = {"backgroundColor": "#e2e3e5"}
+        summary_children = [
+            html.H5("⚪ No Data Available"),
+            html.P("Air quality data is not on record for this county, so no exposure summary can be calculated.")
+        ]
+    else:
+        num_years_above_threshold = np.sum(cigarette_conversion_total[:, idx] >= threshold)
+        if num_years_above_threshold <= 6:
+            card_color = {'backgroundColor': '#d4edda'}
+        elif num_years_above_threshold <= 12:
+            card_color = {'backgroundColor': '#fff3cd'}
+        else:
+            card_color = {'backgroundColor': '#F0320C'}
+
+        worst_idx = np.argmax(cigarette_conversion_total[:, idx])
+        max_year = int(years[worst_idx])
+        max_cigarette = round(float(cigarette_conversion_total[worst_idx, idx]), 2)
+
+        if cigarette_conversion_total[17, idx] >= threshold:
+            summary_2023 = f"In 2023 your exposure was {round(float(cigarette_conversion_total[17, idx]), 2)} cigarettes - above your limit."
+        else:
+            summary_2023 = f"In 2023 your exposure was {round(float(cigarette_conversion_total[17, idx]), 2)} cigarettes - below your limit."
+
+        pct_wildfire = round((float(cigarette_conversion_fire[17, idx] / cigarette_conversion_total[17, idx]) * 100), 2)
+
+        cumulative_above_threshold = sum(cigarette_conversion_total[year - 2006, idx] - threshold for year in range(2006, 2024)
+                                         if cigarette_conversion_total[year - 2006, idx] > threshold)
+
+        summary_children = [html.H5(f"{'🟢' if num_years_above_threshold <= 6 else '🟡' if num_years_above_threshold <= 12 else '🔴'} Your Exposure Summary"),
+            html.P(f"In {num_years_above_threshold} out of 18 years from 2006 - 2023, the county exceeded your threshold of {threshold} cigarettes/year.", style = {'fontWeight': 'bold'}),
+            html.P(f"Your worst year was {max_year} - equivalent to smoking {max_cigarette} cigarettes that year just from breathing."),
+            html.P(summary_2023),
+            html.P(f"Wildfire smoke accounted for {pct_wildfire}% of your total exposure in 2023."),
+            html.P(f"Over 18 years during 2006-2023, you breathed in {round(float(cumulative_above_threshold))} extra cigarettes worth of pollution above your limit of {threshold} cigarettes/year.")]
+
+    return fig, fig_bar, {"display": "block"}, {"display": "none"}, False, card_color, summary_children
 
 
 if __name__ == '__main__':
-    app.run(debug = True)
+    app.run(debug = False)
