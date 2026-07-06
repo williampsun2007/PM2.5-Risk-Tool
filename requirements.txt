@@ -1,0 +1,8 @@
+xarray
+numpy
+plotly
+dash
+dash-bootstrap-components
+pandas
+netCDF4
+gunicorn

@@ -5,13 +5,15 @@ from dash import Dash, html, dcc, Input, Output, callback
 import pandas as pd
 import dash_bootstrap_components as dbc
 
-url = "https://raw.githubusercontent.com/kjhealy/fips-codes/master/state_and_county_fips_master.csv"
-counties_df = pd.read_csv(url)
-counties_df = counties_df[counties_df['fips'] % 1000 != 0] 
+# County/state names for display — the .nc files below only have FIPS codes, not reliable names.
+counties_df = pd.read_csv("data/county_fips.csv")
+counties_df = counties_df[counties_df['fips'] % 1000 != 0]  # drop state-level summary rows (FIPS ending in 000)
 
-data = xr.open_dataset("PM25_county_2006_2023.nc")
-data_dailymax = xr.open_dataset("PM25_county_dailymax_2006_2023.nc")
+data = xr.open_dataset("data/PM25_county_2006_2023.nc")
+data_dailymax = xr.open_dataset("data/PM25_county_dailymax_2006_2023.nc")
 
+# Pull everything into plain numpy arrays up front; the rest of the app indexes into these
+# via fips.tolist().index(selected_fips) instead of touching the xarray Datasets again.
 fips = data['fips'].values
 years = data['year'].values
 firePM25 = data['firePM25'].values
@@ -20,12 +22,14 @@ totalPM25 = data['totalPM25'].values
 
 firePM25_dailymax = data_dailymax['firePM25_dailymax'].values
 
+# Berkeley Earth methodology: 22 ug/m3 of PM2.5 over 24h ~= 1 cigarette.
 cigarette_conversion_fire = (firePM25 / 22) * 365
 cigarette_conversion_nonfire = (nonfirePM25 / 22) * 365
 cigarette_conversion_total = (totalPM25 / 22) * 365
 
 cigarette_conversion_dailymax = firePM25_dailymax / 22
 
+# Placeholder chart shown for counties with no recorded data instead of plotting all-NaN values.
 def _no_data_figure(title):
     fig = go.Figure()
     fig.update_layout(title = title, xaxis = {'visible': False}, yaxis = {'visible': False},
@@ -48,6 +52,7 @@ app.layout = dbc.Container([
             style = {'font-size': '12px', 'color': 'gray'}),
     html.Label("Select County", className = "fw-bold mt-3"),
     dcc.Dropdown(id = 'county-dropdown', options = [
+            # Only list counties that actually have a row in the .nc data (fips is its index).
             {'label': f"{row['name']}, {row['state']}", 'value': int(row['fips'])}
             for _, row in counties_df.iterrows() if int(row['fips']) in fips.tolist()]),
     html.Label("Set Your Cigarette Tolerance Threshold (cigarettes/year)", className = "fw-bold mt-3"),
@@ -96,11 +101,18 @@ app.layout = dbc.Container([
 )
 def update_chart(selected_fips, threshold, n_clicks):
     if selected_fips is None:
+        # No county picked yet: keep the button disabled and results hidden.
         return go.Figure(), go.Figure(), {"display": "none"}, {"display": "block"}, True, {"backgroundColor": "#f8f9fa"}, ""
     elif n_clicks == 0:
+        # County picked but button not yet clicked: results stay hidden until the first reveal.
         return go.Figure(), go.Figure(), {"display": "none"}, {"display": "block"}, False, {"backgroundColor": "#f8f9fa"}, ""
-    
+    # After the first click the button permanently hides itself (see Output('submit-button', 'style')
+    # below), so from here on this callback re-runs live on every county/threshold change.
+
     idx = fips.tolist().index(selected_fips)
+    # Some counties (mostly Alaska) have all-NaN data in one or both datasets. Guard against that
+    # here so np.argmax/np.sum below don't silently produce misleading stats (e.g. a "0 years
+    # exceeded" green card) for a county that actually just has no data on record.
     annual_missing = bool(np.all(np.isnan(cigarette_conversion_total[:, idx])))
     dailymax_missing = bool(np.all(np.isnan(cigarette_conversion_dailymax[:, idx])))
 
@@ -152,6 +164,7 @@ def update_chart(selected_fips, threshold, n_clicks):
         ]
     else:
         num_years_above_threshold = np.sum(cigarette_conversion_total[:, idx] >= threshold)
+        # <=6/18 years over threshold = green, <=12 = yellow, otherwise red.
         if num_years_above_threshold <= 6:
             card_color = {'backgroundColor': '#d4edda'}
         elif num_years_above_threshold <= 12:
@@ -163,6 +176,7 @@ def update_chart(selected_fips, threshold, n_clicks):
         max_year = int(years[worst_idx])
         max_cigarette = round(float(cigarette_conversion_total[worst_idx, idx]), 2)
 
+        # Index 17 = year 2023, relying on years always being 2006-2023 contiguous
         if cigarette_conversion_total[17, idx] >= threshold:
             summary_2023 = f"In 2023 your exposure was {round(float(cigarette_conversion_total[17, idx]), 2)} cigarettes - above your limit."
         else:
