@@ -12,5 +12,5 @@ jobs:
       - uses: huggingface/hub-sync@v0.1.0
         with:
           github_repo_id: ${{ github.repository }}
-          huggingface_repo_id: williampsun/Pm25-Exposure-Tool
+          huggingface_repo_id: williampsun/pm25-exposure-tool
           hf_token: ${{ secrets.HF_TOKEN }}
