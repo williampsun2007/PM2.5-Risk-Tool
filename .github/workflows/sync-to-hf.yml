@@ -13,8 +13,14 @@ jobs:
           fetch-depth: 0
           lfs: true
 
-      - name: Push to Hugging Face
+      - name: Push Root Contents to Hugging Face
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push --force https://williampsun:$HF_TOKEN@huggingface.co/spaces/williampsun/pm25-exposure-tool main
+          # If your files live inside a folder like 'pm25-app', uncomment the next line:
+          # cd pm25-app
+          
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git remote add hf https://williampsun:$HF_TOKEN@huggingface.co/spaces/williampsun/pm25-exposure-tool
+          git push hf main --force
