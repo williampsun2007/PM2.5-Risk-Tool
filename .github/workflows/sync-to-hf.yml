@@ -9,8 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: huggingface/hub-sync@v0.1.0
         with:
-          github_repo_id: ${{ github.repository }}
-          huggingface_repo_id: williampsun/pm25-exposure-tool
-          hf_token: ${{ secrets.HF_TOKEN }}
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git push --force https://williampsun:$HF_TOKEN@huggingface.co/spaces/williampsun/pm25-exposure-tool main
