@@ -121,9 +121,9 @@ def update_chart(selected_fips, threshold, n_clicks):
     else:
         fig = go.Figure()
 
-        fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_nonfire[:, idx], line = dict(color = "red", width = 2),
+        fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_nonfire[:, idx], line = dict(color = "#457b9d", width = 2),
                              stackgroup = 'one', name = "Non-Fire", visible = True))
-        fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_fire[:, idx], line = dict(color = "blue", width = 2),
+        fig.add_trace(go.Scatter(x = years, y = cigarette_conversion_fire[:, idx], line = dict(color = "#e76f51", width = 2),
                              stackgroup = 'one', name = "Fire", visible = True))
 
         fig.add_hline(y = threshold, line_dash = "dash", line_color = "black")
@@ -143,7 +143,7 @@ def update_chart(selected_fips, threshold, n_clicks):
         fig_bar = go.Figure()
 
         fig_bar.add_trace(go.Bar(x = years, y = cigarette_conversion_dailymax[:, idx],
-                                 name = "Daily Max Fire", marker_color = "#d4a017"))
+                                 name = "Daily Max Fire", marker_color = "#e76f51"))
 
         fig_bar.add_hline(y = threshold / 365, line_dash = "dash", line_color = "black")
 
@@ -198,4 +198,4 @@ def update_chart(selected_fips, threshold, n_clicks):
 
 
 if __name__ == '__main__':
-    app.run(host = '0.0.0.0', port = 7860, debug = False)
+    app.run(debug = False)
