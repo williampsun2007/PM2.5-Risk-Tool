@@ -1,3 +1,13 @@
+---
+title: Pm25 Exposure Tool
+emoji: 🌍
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # PM2.5 Risk Tool
 
 This tool converts historical PM2.5 (fine particulate) air pollution data for U.S. counties into an equivalent number of cigarettes smoked.
