@@ -1,3 +1,8 @@
+'''
+Registers the app's single callback, which reacts to county/threshold/button changes and
+computes the charts + color-coded exposure summary shown in the result section.
+'''
+
 import numpy as np
 import plotly.graph_objects as go
 from dash import html, Input, Output

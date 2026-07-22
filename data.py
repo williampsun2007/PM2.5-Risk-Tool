@@ -1,3 +1,8 @@
+'''
+Loads the raw PM2.5 datasets (annual + daily-max NetCDF files) and the FIPS -> county/state
+lookup CSV, exposing them as plain numpy arrays / DataFrames for the rest of the app to use.
+'''
+
 import xarray as xr
 import pandas as pd
 

@@ -66,7 +66,12 @@ The app reads three files from `data/`:
 
 ```
 .
-├── app.py                  # Dash app: layout, callbacks, and chart logic
+├── app.py                  # Entrypoint: creates the app, wires up layout + callbacks
+├── data.py                  # Loads the raw PM2.5 datasets and county lookup
+├── conversion.py             # Berkeley Earth cigarette-equivalent conversion math
+├── charts.py                 # Plotly figure builders
+├── layout.py                  # Dash layout (dropdown, slider, charts, summary card)
+├── callbacks.py               # The app's callback and exposure-summary logic
 ├── data/                    # County-level PM2.5 datasets (see above)
 ├── assets/                  # Static assets (styling, images)
 ├── requirements.txt

@@ -1,6 +1,10 @@
+'''
+Defines the Dash app's layout: the county dropdown, threshold slider, submit button, and
+the result section (charts + summary card) that appears after the user submits.
+'''
+
 from dash import html, dcc
 import dash_bootstrap_components as dbc
-
 
 def build_layout(counties_df, fips):
     return dbc.Container([
