@@ -1,3 +1,15 @@
+'''
+Dash web app for the PM2.5-Risk-Tool. Loads two pre-processed .nc datasets (annual and daily-max county-level 
+PM2.5, 2006–2023, split into fire/non-fire sources) plus a county FIPS→name lookup CSV, converting 
+PM2.5 concentrations into "cigarette equivalents" using the Berkeley Earth formula (22 µg/m³·24h ≈ 1 
+cigarette). The UI lets a user pick a county and a yearly cigarette threshold, then on submit renders 
+two Plotly charts — a stacked area chart of annual fire/non-fire exposure vs. threshold, and a bar 
+chart of worst single-day wildfire exposure per year — along with a color-coded summary card (years 
+over threshold, worst year, 2023 breakdown, % from wildfire smoke, cumulative excess exposure). Built with 
+Dash + dash-bootstrap-components; single callback drives both charts and the summary from county/threshold/button-click 
+inputs.
+'''
+
 import xarray as xr
 import numpy as np
 import plotly.graph_objects as go
