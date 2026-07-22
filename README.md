@@ -14,6 +14,10 @@ This tool converts historical PM2.5 (fine particulate) air pollution data for U.
 
 Pick a county, set a personal tolerance threshold, and get a visual breakdown of 18 years (2006–2023) of exposure, split between everyday ("non-fire") pollution and wildfire smoke.
 
+**[Try it live →](https://williampsun-pm25-exposure-tool.hf.space/)**
+
+![PM2.5 Risk Tool demo](path/to/pm25_demo.gif)
+
 ## What it does
 
 - **Select any U.S. county** with recorded data and see its full 2006–2023 PM2.5 exposure history.
