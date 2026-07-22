@@ -16,7 +16,7 @@ Pick a county, set a personal tolerance threshold, and get a visual breakdown of
 
 **[Try it live →](https://williampsun-pm25-exposure-tool.hf.space/)**
 
-![PM2.5 Risk Tool demo](path/to/pm25_demo.gif)
+![PM2.5 Risk Tool demo](pm25_demo.gif)
 
 ## What it does
 
