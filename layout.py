@@ -7,6 +7,8 @@ from dash import html, dcc
 import dash_bootstrap_components as dbc
 
 def build_layout(counties_df, fips):
+    fips_set = set(fips.tolist())
+    
     return dbc.Container([
     html.Div([
         html.H1("How Healthy Is Your Air?", className = "text-white fw-bold mt-4"),
@@ -19,7 +21,7 @@ def build_layout(counties_df, fips):
     dcc.Dropdown(id = 'county-dropdown', options = [
             # Only list counties that actually have a row in the .nc data (fips is its index).
             {'label': f"{row['name']}, {row['state']}", 'value': int(row['fips'])}
-            for _, row in counties_df.iterrows() if int(row['fips']) in fips.tolist()]),
+            for _, row in counties_df.iterrows() if int(row['fips']) in fips_set]),
     html.Label("Set Your Cigarette Tolerance Threshold (cigarettes/year)", className = "fw-bold mt-3"),
     dcc.Slider(id = 'threshold-slider', min = 0, max = 750, step = 1, value = 150, 
             marks = {0: '0', 100: '100', 200: '200', 300: '300', 400: '400', 500: '500'}),
