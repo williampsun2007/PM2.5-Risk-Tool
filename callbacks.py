@@ -65,7 +65,8 @@ def register_callbacks(app, fips):
             elif num_years_above_threshold <= 12:
                 card_color = {'backgroundColor': '#fff3cd'}
             else:
-                card_color = {'backgroundColor': '#F0320C'}
+                card_color = {'backgroundColor': '#f8d7da'}
+                
             worst_idx = np.argmax(cigarette_conversion_total[:, idx])
             max_year = int(years[worst_idx])
             max_cigarette = round(float(cigarette_conversion_total[worst_idx, idx]), 2)
