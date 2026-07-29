@@ -29,8 +29,8 @@ def build_layout(counties_df, fips):
                 disabled = True, style = {'backgroundColor': '#52b788', 'border': 'none'}),
     html.Div(id = "result-section", style = {"display": "none"}, children = [
         dbc.Row([
-            dbc.Col([dcc.Graph(id = 'main-chart', style = {'height': '500px'}, config = {'displayModeBar': False})], width = 6),
-            dbc.Col([dcc.Graph(id = 'bar-daily', style = {'height': '500px'}, config = {'displayModeBar': False})], width = 6)
+            dbc.Col([dcc.Graph(id = 'main-chart', style = {'height': '500px'}, config = {'displayModeBar': False})], xs = 12, md = 6),
+            dbc.Col([dcc.Graph(id = 'bar-daily', style = {'height': '500px'}, config = {'displayModeBar': False})], xs = 12, md = 6)
         ]),
         dbc.Card(dbc.CardBody(html.P(id = 'summary-text')), className = "mt-3", id = "summary-card"),
         html.Hr(),
