@@ -12,7 +12,7 @@ pinned: false
 
 This tool converts historical PM2.5 (fine particulate) air pollution data for U.S. counties into an equivalent number of cigarettes smoked.
 
-Pick a county, set a personal tolerance threshold, and get a visual breakdown of 18 years (2006–2023) of exposure, split between everyday ("non-fire") pollution and wildfire smoke.
+Pick a county, set a personal tolerance threshold, and get a visual breakdown of 18 years (2006–2023) of exposure, split between everyday "non-fire" pollution and wildfire smoke.
 
 **[Try it live →](https://williampsun-pm25-exposure-tool.hf.space/)**
 
