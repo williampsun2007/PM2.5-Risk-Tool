@@ -17,9 +17,6 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # If your files live inside a folder like 'pm25-app', uncomment the next line:
-          # cd pm25-app
-          
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
           git remote add hf https://williampsun:$HF_TOKEN@huggingface.co/spaces/williampsun/pm25-exposure-tool
